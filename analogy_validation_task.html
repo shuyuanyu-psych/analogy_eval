@@ -1,0 +1,484 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Analogy Validation Task</title>
+  <style>
+    :root {
+      color-scheme: light;
+      font-family: Arial, Helvetica, sans-serif;
+      color: #111;
+      background: #f7f7f5;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+    }
+
+    main {
+      width: min(900px, 92vw);
+      min-height: 620px;
+      display: grid;
+      place-items: center;
+      text-align: center;
+    }
+
+    .screen {
+      width: 100%;
+    }
+
+    .instructions {
+      max-width: 680px;
+      margin: 0 auto;
+      font-size: 24px;
+      line-height: 1.45;
+    }
+
+    .small {
+      margin-top: 28px;
+      font-size: 18px;
+      color: #444;
+    }
+
+    .fixation {
+      font-size: 64px;
+      line-height: 1;
+    }
+
+    .analogy {
+      min-height: 420px;
+      position: relative;
+      display: grid;
+      place-items: center;
+      font-size: clamp(36px, 6vw, 56px);
+      font-weight: 600;
+      letter-spacing: 0;
+    }
+
+    .term-layout {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      grid-template-rows: repeat(2, minmax(0, 1fr));
+      width: min(760px, 92vw);
+      margin: 0 auto;
+    }
+
+    .corner-term {
+      display: grid;
+      place-items: center;
+      text-align: center;
+      min-width: 0;
+      overflow-wrap: anywhere;
+    }
+
+    .center-slot {
+      min-height: 1.2em;
+      display: grid;
+      place-items: center;
+      position: relative;
+      z-index: 1;
+    }
+
+    .invisible {
+      visibility: hidden;
+    }
+
+    .choices {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: min(620px, 90vw);
+      margin: 24px auto 0;
+      font-size: 22px;
+      color: #333;
+    }
+
+    .choice-button {
+      border: 1px solid #777;
+      background: #fff;
+      color: #111;
+      min-width: 128px;
+    }
+
+    .choice-button:hover {
+      background: #ececea;
+    }
+
+    .feedback {
+      font-size: 64px;
+      line-height: 1;
+      font-weight: 700;
+    }
+
+    .correct {
+      color: #176f43;
+    }
+
+    .incorrect {
+      color: #a02b2b;
+    }
+
+    button {
+      appearance: none;
+      border: 1px solid #1f2937;
+      background: #1f2937;
+      color: white;
+      border-radius: 6px;
+      padding: 12px 18px;
+      font-size: 18px;
+      cursor: pointer;
+    }
+
+    button:focus-visible {
+      outline: 3px solid #4f8cff;
+      outline-offset: 3px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 10px;
+      font-size: 18px;
+      color: #333;
+      text-align: left;
+    }
+
+    input {
+      box-sizing: border-box;
+      width: min(420px, 86vw);
+      border: 1px solid #777;
+      border-radius: 6px;
+      padding: 12px 14px;
+      font-size: 20px;
+      margin-bottom: 20px;
+    }
+  </style>
+</head>
+<body>
+  <main id="app" aria-live="polite"></main>
+
+  <script>
+    const RESPONSE_KEYS = {
+      invalid: "ArrowLeft",
+      valid: "ArrowRight"
+    };
+
+    const PRACTICE_TRIALS = [
+      { A: "puppy", B: "dog", C: "calf", D: "cow", valid: true, phase: "practice" },
+      { A: "puppy", B: "dog", C: "calf", D: "chicken", valid: false, phase: "practice" }
+    ];
+
+    const TEST_TRIALS = [
+      { A: "cleanser", B: "face", C: "curtain", D: "shower", valid: false, class: "False", semanticDistance: 0.63, difficulty: 2.53 },
+      { A: "knee", B: "kneepad", C: "flag", D: "flagpole", valid: false, class: "False", semanticDistance: 0.82, difficulty: 2.85 },
+      { A: "ash", B: "fireplace", C: "harness", D: "climber", valid: false, class: "False", semanticDistance: 0.81, difficulty: 2.41 },
+      { A: "immunization", B: "disease", C: "hotel", D: "innkeeper", valid: false, class: "False", semanticDistance: 0.98, difficulty: 3.47 },
+      { A: "nose", B: "scent", C: "eyelash", D: "mascara", valid: false, class: "False", semanticDistance: 0.75, difficulty: 2.62 },
+      { A: "bracelet", B: "wrist", C: "skill", D: "practice", valid: false, class: "False", semanticDistance: 0.85, difficulty: 3.92 },
+      { A: "foresight", B: "future", C: "letter", D: "mailman", valid: false, class: "False", semanticDistance: 0.96, difficulty: 4.48 },
+      { A: "launchpad", B: "helicopter", C: "thorn", D: "rose", valid: false, class: "False", semanticDistance: 0.76, difficulty: 1.46 },
+      { A: "basket", B: "picnic", C: "knife", D: "napkin", valid: false, class: "False", semanticDistance: 0.71, difficulty: 2.02 },
+      { A: "rectangle", B: "perimeter", C: "octagon", D: "angle", valid: false, class: "False", semanticDistance: 0.57, difficulty: 3.45 },
+      { A: "ketchup", B: "tomato", C: "shoelace", D: "skate", valid: false, class: "False", semanticDistance: 0.92, difficulty: 2.65 },
+      { A: "father", B: "son", C: "nephew", D: "cousin", valid: false, class: "False", semanticDistance: 0.59, difficulty: 2.09 },
+      { A: "painting", B: "canvas", C: "mistake", D: "regret", valid: false, class: "False", semanticDistance: 0.94, difficulty: 5.96 },
+      { A: "blindness", B: "sight", C: "wall", D: "paint", valid: false, class: "False", semanticDistance: 0.79, difficulty: 3.59 },
+      { A: "movie", B: "screen", C: "metal", D: "rust", valid: false, class: "False", semanticDistance: 0.95, difficulty: 5.79 },
+      { A: "furnace", B: "coal", C: "beach", D: "ocean", valid: false, class: "False", semanticDistance: 0.97, difficulty: 2.39 },
+      { A: "sugar", B: "coffee", C: "grinder", D: "bean", valid: false, class: "False", semanticDistance: 0.92, difficulty: 3.85 },
+      { A: "aspirin", B: "pain", C: "foot", D: "sock", valid: false, class: "False", semanticDistance: 0.85, difficulty: 3.61 },
+      { A: "landscaper", B: "lawn", C: "fence", D: "field", valid: false, class: "False", semanticDistance: 0.69, difficulty: 2.37 },
+      { A: "train", B: "track", C: "conductor", D: "whistle", valid: false, class: "False", semanticDistance: 0.69, difficulty: 2.23 },
+      { A: "answer", B: "riddle", C: "key", D: "lock", valid: true, class: "Cross-Domain", semanticDistance: 0.82, difficulty: 3.53 },
+      { A: "ash", B: "fireplace", C: "lint", D: "pocket", valid: true, class: "Cross-Domain", semanticDistance: 0.81, difficulty: 3.82 },
+      { A: "aspirin", B: "pain", C: "muffler", D: "noise", valid: true, class: "Cross-Domain", semanticDistance: 0.89, difficulty: 4.55 },
+      { A: "baker", B: "cake", C: "scientist", D: "discovery", valid: true, class: "Cross-Domain", semanticDistance: 0.92, difficulty: 3.14 },
+      { A: "basketball", B: "hoop", C: "traveler", D: "destination", valid: true, class: "Cross-Domain", semanticDistance: 0.94, difficulty: 2.8 },
+      { A: "blindness", B: "sight", C: "poverty", D: "money", valid: true, class: "Cross-Domain", semanticDistance: 0.88, difficulty: 3.97 },
+      { A: "blizzard", B: "snowflake", C: "army", D: "soldier", valid: true, class: "Cross-Domain", semanticDistance: 0.99, difficulty: 3.87 },
+      { A: "bracelet", B: "wrist", C: "moat", D: "castle", valid: true, class: "Cross-Domain", semanticDistance: 0.88, difficulty: 4.23 },
+      { A: "burger", B: "bun", C: "book", D: "cover", valid: true, class: "Cross-Domain", semanticDistance: 0.92, difficulty: 3.47 },
+      { A: "eraser", B: "pencil", C: "amnesia", D: "memory", valid: true, class: "Cross-Domain", semanticDistance: 0.91, difficulty: 2.54 },
+      { A: "father", B: "son", C: "inventor", D: "invention", valid: true, class: "Cross-Domain", semanticDistance: 0.91, difficulty: 3.39 },
+      { A: "flock", B: "goose", C: "constellation", D: "star", valid: true, class: "Cross-Domain", semanticDistance: 0.96, difficulty: 3.73 },
+      { A: "foresight", B: "future", C: "x-ray", D: "bone", valid: true, class: "Cross-Domain", semanticDistance: 0.98, difficulty: 4.54 },
+      { A: "foundation", B: "house", C: "premise", D: "argument", valid: true, class: "Cross-Domain", semanticDistance: 0.97, difficulty: 5.78 },
+      { A: "furnace", B: "coal", C: "stomach", D: "food", valid: true, class: "Cross-Domain", semanticDistance: 0.91, difficulty: 3.77 },
+      { A: "hoof", B: "hoofprint", C: "introduction", D: "impression", valid: true, class: "Cross-Domain", semanticDistance: 0.91, difficulty: 6.04 },
+      { A: "immunization", B: "disease", C: "forewarning", D: "surprise", valid: true, class: "Cross-Domain", semanticDistance: 0.98, difficulty: 5.5 },
+      { A: "jacket", B: "zipper", C: "wound", D: "suture", valid: true, class: "Cross-Domain", semanticDistance: 0.72, difficulty: 3.72 },
+      { A: "ketchup", B: "tomato", C: "fuel", D: "petroleum", valid: true, class: "Cross-Domain", semanticDistance: 0.98, difficulty: 4.52 },
+      { A: "kitten", B: "cat", C: "spark", D: "fire", valid: true, class: "Cross-Domain", semanticDistance: 0.93, difficulty: 3.82 },
+      { A: "knee", B: "kneepad", C: "snail", D: "shell", valid: true, class: "Cross-Domain", semanticDistance: 0.9, difficulty: 2.07 },
+      { A: "lambchop", B: "lamb", C: "chapter", D: "book", valid: true, class: "Cross-Domain", semanticDistance: 0.95, difficulty: 4.28 },
+      { A: "landscaper", B: "lawn", C: "stylist", D: "hair", valid: true, class: "Cross-Domain", semanticDistance: 0.83, difficulty: 3.68 },
+      { A: "launchpad", B: "helicopter", C: "divingboard", D: "diver", valid: true, class: "Cross-Domain", semanticDistance: 0.83, difficulty: 3.98 },
+      { A: "lawschool", B: "lawyer", C: "vineyard", D: "wine", valid: true, class: "Cross-Domain", semanticDistance: 0.95, difficulty: 6.74 },
+      { A: "movie", B: "screen", C: "lightning", D: "sky", valid: true, class: "Cross-Domain", semanticDistance: 0.89, difficulty: 5.44 },
+      { A: "multiplication", B: "product", C: "brewing", D: "beer", valid: true, class: "Cross-Domain", semanticDistance: 0.9, difficulty: 6.94 },
+      { A: "nose", B: "scent", C: "antenna", D: "signal", valid: true, class: "Cross-Domain", semanticDistance: 0.93, difficulty: 4.92 },
+      { A: "orchard", B: "apple", C: "neighborhood", D: "apartment", valid: true, class: "Cross-Domain", semanticDistance: 0.9, difficulty: 6.78 },
+      { A: "painting", B: "canvas", C: "birthmark", D: "skin", valid: true, class: "Cross-Domain", semanticDistance: 0.97, difficulty: 3.85 },
+      { A: "pen", B: "pig", C: "reservoir", D: "water", valid: true, class: "Cross-Domain", semanticDistance: 0.89, difficulty: 5.06 },
+      { A: "rectangle", B: "perimeter", C: "nation", D: "border", valid: true, class: "Cross-Domain", semanticDistance: 0.97, difficulty: 3.73 },
+      { A: "revising", B: "manuscript", C: "evolving", D: "species", valid: true, class: "Cross-Domain", semanticDistance: 0.98, difficulty: 3.4 },
+      { A: "saxophone", B: "jazz", C: "typewriter", D: "poetry", valid: true, class: "Cross-Domain", semanticDistance: 0.85, difficulty: 3.36 },
+      { A: "sugar", B: "coffee", C: "incentive", D: "deal", valid: true, class: "Cross-Domain", semanticDistance: 0.86, difficulty: 6.23 },
+      { A: "thermometer", B: "temperature", C: "polygraph", D: "honesty", valid: true, class: "Cross-Domain", semanticDistance: 0.99, difficulty: 3.73 },
+      { A: "train", B: "track", C: "signal", D: "wire", valid: true, class: "Cross-Domain", semanticDistance: 0.86, difficulty: 4.6 },
+      { A: "watermelon", B: "rind", C: "cigarette", D: "butt", valid: true, class: "Cross-Domain", semanticDistance: 0.99, difficulty: 4.21 }
+    ];
+
+    const app = document.querySelector("#app");
+    const results = [];
+    let participantId = "";
+    let trialNumber = 0;
+
+    function shuffle(items) {
+      const copy = [...items];
+      for (let i = copy.length - 1; i > 0; i -= 1) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [copy[i], copy[j]] = [copy[j], copy[i]];
+      }
+      return copy;
+    }
+
+    function render(html) {
+      app.innerHTML = `<section class="screen">${html}</section>`;
+    }
+
+    function wait(ms) {
+      return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    function showParticipantPrompt() {
+      render(`
+        <form class="instructions" id="participant-form">
+          <label for="participant-id">Participant ID</label>
+          <input id="participant-id" name="participant-id" autocomplete="off" required>
+          <button type="submit">Continue</button>
+        </form>
+      `);
+
+      document.querySelector("#participant-id").focus();
+      document.querySelector("#participant-form").addEventListener("submit", event => {
+        event.preventDefault();
+        participantId = document.querySelector("#participant-id").value.trim();
+        if (participantId) showInstructions();
+      });
+    }
+
+    function showInstructions() {
+      render(`
+        <div class="instructions">
+          <p>In this task, you are going to view some analogies and your job is to <strong> evaluate whether the analogy is valid or not</strong>. <br><br>
+          You will have up to 8s to respond. Accuracy is more important than speed so try to respond as accurately as possible.
+          <p class="small">Press the left arrow key for invalid. Press the right arrow key for valid.</p>
+          <button id="start">Start practice</button>
+        </div>
+      `);
+      document.querySelector("#start").addEventListener("click", runTask, { once: true });
+    }
+
+    async function runTask() {
+      for (const trial of PRACTICE_TRIALS) {
+        await runTrial(trial, "practice");
+      }
+
+      render(`
+        <div class="instructions">
+          <p>The practice trials are complete.</p>
+          <p class="small">Press the button below when you are ready to begin the main task.</p>
+          <button id="continue">Begin main task</button>
+        </div>
+      `);
+
+      await new Promise(resolve => {
+        document.querySelector("#continue").addEventListener("click", resolve, { once: true });
+      });
+
+      for (const trial of shuffle(TEST_TRIALS)) {
+        await runTrial(trial, "test");
+      }
+
+      showEndScreen();
+    }
+
+    async function runTrial(trial, phase) {
+      trialNumber += 1;
+      renderTrialDisplay(trial, { showFixation: true, showChoices: false });
+      await wait(500);
+
+      const start = performance.now();
+      const response = await collectResponse(trial);
+      const rt = response.rt === null ? null : Math.round(response.rt);
+      const selectedValid = response.choice;
+      const correct = selectedValid === trial.valid;
+
+      results.push({
+        participantId,
+        trialNumber,
+        phase,
+        A: trial.A,
+        B: trial.B,
+        C: trial.C,
+        D: trial.D,
+        class: trial.class || "",
+        semanticDistance: trial.semanticDistance || "",
+        difficulty: trial.difficulty || "",
+        correctAnswer: trial.valid ? "valid" : "invalid",
+        response: selectedValid === null ? "timeout" : selectedValid ? "valid" : "invalid",
+        key: response.key || "",
+        rt,
+        correct
+      });
+
+      if (correct && !response.timedOut) return;
+
+      showFeedback(response.timedOut ? "Too slow" : "Incorrect", false);
+      await wait(900);
+    }
+
+    function collectResponse(trial) {
+      renderTrialDisplay(trial, { showFixation: false, showChoices: true });
+
+      const start = performance.now();
+      return new Promise(resolve => {
+        let settled = false;
+        const invalidButton = document.querySelector("#invalid-choice");
+        const validButton = document.querySelector("#valid-choice");
+        const timeout = setTimeout(() => finish(null, null, true), 8000);
+
+        function finish(key, choice, timedOut) {
+          if (settled) return;
+          settled = true;
+          clearTimeout(timeout);
+          window.removeEventListener("keydown", onKeydown);
+          invalidButton.removeEventListener("click", onInvalidClick);
+          validButton.removeEventListener("click", onValidClick);
+          resolve({
+            key,
+            choice,
+            timedOut,
+            rt: timedOut ? null : performance.now() - start
+          });
+        }
+
+        function onInvalidClick() {
+          finish("click-invalid", false, false);
+        }
+
+        function onValidClick() {
+          finish("click-valid", true, false);
+        }
+
+        function onKeydown(event) {
+          if (event.key === RESPONSE_KEYS.invalid || event.key === RESPONSE_KEYS.valid) {
+            event.preventDefault();
+            finish(event.key, event.key === RESPONSE_KEYS.valid, false);
+          }
+        }
+
+        window.addEventListener("keydown", onKeydown);
+        invalidButton.addEventListener("click", onInvalidClick);
+        validButton.addEventListener("click", onValidClick);
+      });
+    }
+
+    function renderTrialDisplay(trial, { showFixation, showChoices }) {
+      const hiddenClass = showFixation ? " invisible" : "";
+      const choicesClass = showChoices ? "" : " invisible";
+
+      render(`
+        <div>
+          <div class="analogy">
+            <div class="term-layout${hiddenClass}">
+              <span class="corner-term">${trial.A}</span>
+              <span class="corner-term">${trial.B}</span>
+              <span class="corner-term">${trial.C}</span>
+              <span class="corner-term">${trial.D}</span>
+            </div>
+            <div class="center-slot">${showFixation ? '<span class="fixation">+</span>' : ''}</div>
+          </div>
+          <div class="choices${choicesClass}">
+            <button class="choice-button" id="invalid-choice" type="button">invalid</button>
+            <button class="choice-button" id="valid-choice" type="button">valid</button>
+          </div>
+        </div>
+      `);
+    }
+
+    function showFeedback(text, correct) {
+      render(`
+        <div>
+          <div class="analogy">
+            <div></div>
+            <div class="center-slot">
+              <span class="feedback ${correct ? "correct" : "incorrect"}">${text}</span>
+            </div>
+            <div></div>
+          </div>
+          <div class="choices invisible">
+            <button class="choice-button" type="button">invalid</button>
+            <button class="choice-button" type="button">valid</button>
+          </div>
+        </div>
+      `);
+    }
+
+    function showEndScreen() {
+      downloadCsv();
+      render(`
+        <div class="instructions">
+          <p>Thank you for your participation!</p>
+          <p>The data will be downloaded automatically.</p>
+        </div>
+      `);
+    }
+
+    function downloadCsv() {
+      const headers = Object.keys(results[0]);
+      const lines = [
+        headers.join(","),
+        ...results.map(row => headers.map(header => csvCell(row[header])).join(","))
+      ];
+      const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      const safeParticipantId = participantId.replace(/[^a-z0-9_-]/gi, "_") || "participant";
+      const timestamp = localTimestamp();
+      link.href = url;
+      link.download = `${safeParticipantId}_train_evaluation_${timestamp}.csv`;
+      link.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function localTimestamp() {
+      const now = new Date();
+      const date = [
+        now.getFullYear(),
+        String(now.getMonth() + 1).padStart(2, "0"),
+        String(now.getDate()).padStart(2, "0")
+      ].join("-");
+      const time = [
+        String(now.getHours()).padStart(2, "0"),
+        String(now.getMinutes()).padStart(2, "0"),
+        String(now.getSeconds()).padStart(2, "0")
+      ].join("-");
+      return `${date}_${time}`;
+    }
+
+    function csvCell(value) {
+      const text = value === null || value === undefined ? "" : String(value);
+      return /[",\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+    }
+
+    showParticipantPrompt();
+  </script>
+</body>
+</html>
