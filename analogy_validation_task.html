@@ -32,10 +32,19 @@
     }
 
     .instructions {
-      max-width: 680px;
+      max-width: 920px;
       margin: 0 auto;
       font-size: 24px;
-      line-height: 1.45;
+      line-height: 1.35;
+      text-align: center;
+    }
+
+    .instructions p {
+      margin: 0 0 16px;
+    }
+
+    .instruction-line {
+      white-space: nowrap;
     }
 
     .small {
@@ -59,6 +68,16 @@
       letter-spacing: 0;
     }
 
+    .instruction-example {
+      min-height: 260px;
+      margin: 18px 0;
+      font-size: clamp(34px, 5vw, 50px);
+    }
+
+    .instruction-example .term-layout {
+      width: min(560px, 82vw);
+    }
+
     .term-layout {
       position: absolute;
       inset: 0;
@@ -67,6 +86,22 @@
       grid-template-rows: repeat(2, minmax(0, 1fr));
       width: min(760px, 92vw);
       margin: 0 auto;
+    }
+
+    .term-layout::before,
+    .term-layout::after {
+      content: ":";
+      position: absolute;
+      left: 50%;
+      transform: translate(-50%, -50%);
+    }
+
+    .term-layout::before {
+      top: 25%;
+    }
+
+    .term-layout::after {
+      top: 75%;
     }
 
     .corner-term {
@@ -231,7 +266,7 @@
       { A: "sugar", B: "coffee", C: "incentive", D: "deal", valid: true, class: "Cross-Domain", semanticDistance: 0.86, difficulty: 6.23 },
       { A: "thermometer", B: "temperature", C: "polygraph", D: "honesty", valid: true, class: "Cross-Domain", semanticDistance: 0.99, difficulty: 3.73 },
       { A: "train", B: "track", C: "signal", D: "wire", valid: true, class: "Cross-Domain", semanticDistance: 0.86, difficulty: 4.6 },
-      { A: "watermelon", B: "rind", C: "cigarette", D: "butt", valid: true, class: "Cross-Domain", semanticDistance: 0.99, difficulty: 4.21 }
+      
     ];
 
     const app = document.querySelector("#app");
@@ -276,9 +311,20 @@
     function showInstructions() {
       render(`
         <div class="instructions">
-          <p>In this task, you are going to view some analogies and your job is to <strong> evaluate whether the analogy is valid or not</strong>. <br><br>
-          You will have up to 8s to respond. Accuracy is more important than speed so try to respond as accurately as possible.
-          <p class="small">Press the left arrow key for invalid. Press the right arrow key for valid.</p>
+          <p class="instruction-line">In this task, you are going to view some pairs of words like below.</p>
+          <p class="instruction-line">Your job is to <strong>evaluate whether the analogy, A:B::C:D, is valid or not</strong>.</p>
+          <div class="analogy instruction-example" aria-label="Example analogy format: A to B, C to D">
+            <div class="term-layout">
+              <span class="corner-term">A</span>
+              <span class="corner-term">B</span>
+              <span class="corner-term">C</span>
+              <span class="corner-term">D</span>
+            </div>
+          </div>
+          <p class="instruction-line">You will have up to <strong>8s</strong> to respond.</p>
+          <p class="instruction-line">Accuracy is more important than speed, so try to respond as accurately as possible.</p>
+          <p class="small instruction-line">Press the left arrow key for invalid.</p>
+          <p class="small instruction-line">Press the right arrow key for valid.</p>
           <button id="start">Start practice</button>
         </div>
       `);
@@ -453,7 +499,7 @@
       const safeParticipantId = participantId.replace(/[^a-z0-9_-]/gi, "_") || "participant";
       const timestamp = localTimestamp();
       link.href = url;
-      link.download = `${safeParticipantId}_train_evaluation_${timestamp}.csv`;
+      link.download = `S${safeParticipantId}_part1_con1_evaluation_${timestamp}.csv`;
       link.click();
       URL.revokeObjectURL(url);
     }
